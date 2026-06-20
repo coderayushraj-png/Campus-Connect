@@ -1,0 +1,6 @@
+{
+  "name": "Campus Connect",
+  "description": "A comprehensive student portal for navigating university life, notices, and clubs, featuring an AI buddy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

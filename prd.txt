@@ -1,0 +1,110 @@
+# Product Requirements Document (PRD): Campus Connect
+
+## 1. Product Overview
+**Name**: Campus Connect
+**Description**: A comprehensive digital campus portal designed to centralize and streamline communication, academic resources, community engagement, and administrative workflows for both students and university staff.
+**Target Audience**: 
+1. **Students**: Seeking academic resources, job placements, campus announcements, and community interaction.
+2. **Administrators/Staff**: Tasked with managing notices, event schedules, user access, and campus statistics.
+
+## 2. User Roles & Permissions
+### 2.1 Student Role
+- **Access Level**: Standard Consumer.
+- **Capabilities**: Can view and consume announcements, interact with community features (forum, lost & found, clubs), download notes, manage their personal profile, and configure notification preferences. Cannot modify systemic data or issue global notices.
+
+### 2.2 Administrator Role
+- **Access Level**: System Manager.
+- **Capabilities**: Full access to global dashboard matrices. Can CRUD (Create, Read, Update, Delete) global entities including users, placements, events, clubs, notices, and deadlines.
+
+---
+
+## 3. Feature Specifications: Student Interface
+
+### 3.1 Authentication & Onboarding
+- **Sign Up**: Email/password registration. Post-registration, users must verify their email with a one-time link.
+- **Sign In**: Standard email/password credential login.
+- **Routing Enforcement**: Role-based redirection intercepts post-login to send Admin accounts to `/admin/dashboard` and Students to `/dashboard`.
+
+### 3.2 Global Layout & Navigation
+- **Sidebar Navigation**: Fixed left-rail (collapsible on mobile) presenting modules: Dashboard, Notices, Events, Placements, Clubs, Forum, Notes, Lost & Found.
+- **Top Header**: Global search bar, AI Assistant (AI Buddy) toggle, Notification Bell, Messages, and Profile Dropdown.
+
+### 3.3 User Profile Management
+- **Avatars**: Automatically generated via user initials (gradient background) if no photo exists.
+- **Profile Configuration**: Students can update personal and academic data, including: Full Name, Phone Number, Branch, Semester, Course, and Bio.
+- **Data Persistence**: Uses `upsert` mechanism with the `profiles` table to maintain data linkage.
+
+### 3.4 Application Settings & Preferences
+- **Notification Toggles**: Granular boolean settings mapped to database columns:
+  - `notif_placement` (Job & Internship Updates)
+  - `notif_events` (Campus Events)
+  - `notif_exam` (Examinations)
+  - `notif_notices` (General Administration Notices)
+  - `notif_deadlines` (Assignment/Registration Deadlines)
+- **Account Actions**:
+  - Logout functionality.
+  - Delete Account Mechanism: Supported by a secure SQL RPC function (`delete_user`), preceded by a secondary safety modal requesting the user to type "DELETE".
+
+### 3.5 Academic & Career Resources
+- **Placements Module**: Real-time board for internships and job offerings. Includes active/inactive filtering. 
+- **Notes Repository**: Centralized place representing uploaded study materials/notes (`notes` DB table).
+- **Deadlines Module**: Calendar or timeline tracker for upcoming exams and deadlines. Interlinks with placement deadlines and event registrations.
+
+### 3.6 Campus Life & Community
+- **College Notices**: Official read-only broadcasting channel for campus announcements.
+- **Events**: Directory of cultural, academic, and systemic events. 
+- **Clubs**: Directory of official campus clubs/societies.
+- **Lost & Found**: Community bulletin board to report lost and found items.
+- **Campus Forum**: Discussion spaces (`forum_posts`) with filtering criteria (tags). Includes pagination.
+
+### 3.7 In-App Notifications
+- **System**: Real-time floating Notification bell. Tracks triggers from placements, notices, and events. Differentiates Read/Unread state.
+
+### 3.8 AI Integration
+- **AI Buddy**: Floating widget integrated into the global layout empowering users to ask campus/academic questions using modern LLM capabilities (via GenAI / Groq SDK). 
+
+---
+
+## 4. Feature Specifications: Admin Portal
+
+### 4.1 Executive Dashboard
+- **Live Metrics**: At-a-glance cards calculating exact system totals for Users, Active Placements, Notes, and Forum Posts.
+- **Recent Feeds**: Summarized feed displaying the most recently uploaded notes and scheduled events.
+
+### 4.2 Analytics & Reporting
+- **Data Aggregation**: Summarizes volume arrays for all major entities (notices, clubs, placements).
+- **Demographics**: Branch-specific charts evaluating the user base distribution (via `profiles` branch data).
+
+### 4.3 Administrator Management Modules
+All of the following leverage full CRUD workflows utilizing modals and tables:
+- **User Management**: View user emails, roles, names. (Cannot currently hardcode auth password modifications due to security).
+- **Notices Management**: Add new college notices bridging directly to student apps.
+- **Events Management**: Schedule events. Note: Creates synchronized entries in the `deadlines` table for automated tracking.
+- **Placements Management**: Post recruitment details. Interacts with the `deadlines` table as well.
+- **Clubs Management**: Define, launch, or modify active campus organisations.
+
+---
+
+## 5. System Schema & Data Architecture
+The backend is primarily served by Postgres/Supabase utilizing the following critical tables:
+
+1. `profiles`: `id` (PK, matches auth.user), `name`, `email`, `role`, `phone`, `branch`, `semester`, `course`, `bio`, `notif_placement`, `notif_events`, `notif_exam`, `notif_notices`, `notif_deadlines`.
+2. `placements`: Job/internship details, active statuses, applied constraints.
+3. `events`: `id`, `title`, `description`, dates, locations.
+4. `deadlines`: Standalone deadlines OR foreign-keyed deadlines correlated inherently to events and placements.
+5. `notices`: System-wide alerts and updates.
+6. `clubs`: Official roster of organizational bodies.
+7. `lost_found`: Postings of lost item descriptions and contact avenues.
+8. `notes`: Shared study resources.
+9. `forum_posts`: Discussions, tagged logic, and timestamps.
+10. `notifications`: Event listeners stored persistently tied to `user_id` and Read/Unread flags.
+
+## 6. Technical Stack
+- **Framework**: React 19 / Vite.
+- **Routing**: `react-router-dom` (v7).
+- **Styling**: Tailwind CSS (v4) with `clsx` and `tailwind-merge` for utility manipulation.
+- **Icons**: Lucide-React.
+- **Animations**: Framer Motion module (`motion`).
+- **Backend/Database As A Service**: Supabase (PostgreSQL, Auth, RPC Functions).
+- **AI Tooling**: Google GenAI / Groq SDK implementations.
+- **Build Delivery**: Esbuild outputted scripts.
