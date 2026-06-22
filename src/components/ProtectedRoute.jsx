@@ -11,32 +11,59 @@ export default function ProtectedRoute({
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function checkAuth() {
+      if (isMounted) setLoading(true);
+
+      // Secure server-side token verification instead of local getSession
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      if (error || !user) {
+        if (isMounted) {
+          setIsAuthenticated(false)
+          setLoading(false)
+        }
+        return
+      }
+
+      if (isMounted) setIsAuthenticated(true)
+
+      if (requireAdmin) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (isMounted) {
+          setIsAdmin(!profileError && profile?.role === 'admin')
+        }
+      } else {
+        if (isMounted) {
+          setIsAdmin(false)
+        }
+      }
+
+      if (isMounted) setLoading(false)
+    }
+
     checkAuth()
-  }, [])
 
-  async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        if (isMounted) {
+          setIsAuthenticated(false)
+          setIsAdmin(false)
+        }
+      }
+    })
 
-    if (!session || !session.user) {
-      setIsAuthenticated(false)
-      setLoading(false)
-      return
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
     }
-
-    setIsAuthenticated(true)
-
-    if (requireAdmin) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-
-      setIsAdmin(profile?.role === 'admin')
-    }
-
-    setLoading(false)
-  }
+  }, [requireAdmin])
 
   // CRITICAL: Show nothing/loading while checking - never render children early
   if (loading) {
